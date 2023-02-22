@@ -1,0 +1,5 @@
+name: turbort-dev
+channels:
+  - mgottingen
+dependencies:
+  - turbo
