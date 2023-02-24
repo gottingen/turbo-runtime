@@ -448,7 +448,7 @@ class BFCArena : public IArenaAllocator {
 
   // Map from bin size to Bin
   Bin* BinFromIndex(BinNum index) {
-    return reinterpret_cast<Bin*>(&(bins_space_[index * sizeof(Bin)]));
+    return reinterpret_cast<Bin*>(&(bins_space_[static_cast<size_t>(index) * sizeof(Bin)]));
   }
 
   size_t BinNumToSize(BinNum index) {
@@ -473,7 +473,7 @@ class BFCArena : public IArenaAllocator {
 
   std::unique_ptr<IAllocator> device_allocator_;
 
-  mutable BrtMutex lock_;
+  mutable TbrtMutex lock_;
 
   RegionManager region_manager_;
   std::vector<Chunk> chunks_;

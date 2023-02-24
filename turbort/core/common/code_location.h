@@ -32,8 +32,8 @@ struct CodeLocation {
   CodeLocation(const char* file_path,
                const int line,
                const char* func,
-               const std::vector<std::string>& stacktrace)
-      : file_and_path{file_path}, line_num{line}, function{func}, stacktrace(stacktrace) {
+               const std::vector<std::string>& stacktrace_arg)
+      : file_and_path{file_path}, line_num{line}, function{func}, stacktrace(stacktrace_arg) {
   }
 
   std::string FileNoPath() const {

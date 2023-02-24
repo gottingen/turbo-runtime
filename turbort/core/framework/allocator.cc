@@ -66,6 +66,6 @@ void CPUAllocator::Free(void* p) {
 }
 }  // namespace turbort
 
-std::ostream& operator<<(std::ostream& out, const BrtMemoryInfo& info) {
+std::ostream& operator<<(std::ostream& out, const TbrtMemoryInfo& info) {
   return (out << info.ToString());
 }

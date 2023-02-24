@@ -17,7 +17,7 @@ namespace turbort {
 // The setting like max_chunk_size is init by IDeviceDescriptor from resource allocator
 class IArenaAllocator : public IAllocator {
  public:
-  IArenaAllocator(const BrtMemoryInfo& info) : IAllocator(info) {
+  IArenaAllocator(const TbrtMemoryInfo& info) : IAllocator(info) {
   }
   ~IArenaAllocator() override = default;
   // Alloc call needs to be thread safe.

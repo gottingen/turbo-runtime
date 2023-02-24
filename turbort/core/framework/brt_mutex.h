@@ -9,26 +9,26 @@
 #include <Windows.h>
 #include <mutex>
 namespace turbort {
-// Q: Why BrtMutex is better than std::mutex
-// A: BrtMutex supports static initialization but std::mutex doesn't. Static initialization helps us
+// Q: Why TbrtMutex is better than std::mutex
+// A: TbrtMutex supports static initialization but std::mutex doesn't. Static initialization helps us
 // prevent the "static initialization order problem".
 
 // Q: Why std::mutex can't make it?
 // A: VC runtime has to support Windows XP at ABI level. But we don't have such requirement.
 
-// Q: Is BrtMutex faster than std::mutex?
+// Q: Is TbrtMutex faster than std::mutex?
 // A: Sure
 
-class BrtMutex {
+class TbrtMutex {
  private:
   SRWLOCK data_ = SRWLOCK_INIT;
 
  public:
-  BrtMutex() = default;
+  TbrtMutex() = default;
   // SRW locks do not need to be explicitly destroyed.
-  ~BrtMutex() = default;
-  BrtMutex(const BrtMutex&) = delete;
-  BrtMutex& operator=(const BrtMutex&) = delete;
+  ~TbrtMutex() = default;
+  TbrtMutex(const TbrtMutex&) = delete;
+  TbrtMutex& operator=(const TbrtMutex&) = delete;
   void lock() {
     AcquireSRWLockExclusive(native_handle());
   }
@@ -45,15 +45,15 @@ class BrtMutex {
   }
 };
 
-class BrtCondVar {
+class TbrtCondVar {
   CONDITION_VARIABLE native_cv_object = CONDITION_VARIABLE_INIT;
 
  public:
-  BrtCondVar() noexcept = default;
-  ~BrtCondVar() = default;
+  TbrtCondVar() noexcept = default;
+  ~TbrtCondVar() = default;
 
-  BrtCondVar(const BrtCondVar&) = delete;
-  BrtCondVar& operator=(const BrtCondVar&) = delete;
+  TbrtCondVar(const TbrtCondVar&) = delete;
+  TbrtCondVar& operator=(const TbrtCondVar&) = delete;
 
   void notify_one() noexcept {
     WakeConditionVariable(&native_cv_object);
@@ -62,26 +62,26 @@ class BrtCondVar {
     WakeAllConditionVariable(&native_cv_object);
   }
 
-  void wait(std::unique_lock<BrtMutex>& lk) {
+  void wait(std::unique_lock<TbrtMutex>& lk) {
     if (SleepConditionVariableSRW(&native_cv_object, lk.mutex()->native_handle(), INFINITE, 0) !=
         TRUE) {
       std::terminate();
     }
   }
   template <class _Predicate>
-  void wait(std::unique_lock<BrtMutex>& __lk, _Predicate __pred);
+  void wait(std::unique_lock<TbrtMutex>& __lk, _Predicate __pred);
 
   /**
    * returns cv_status::timeout if the wait terminates when Rel_time has elapsed. Otherwise, the
    * method returns cv_status::no_timeout.
-   * @param cond_mutex A unique_lock<BrtMutex> object.
+   * @param cond_mutex A unique_lock<TbrtMutex> object.
    * @param rel_time A chrono::duration object that specifies the amount of time before the thread
    * wakes up.
    * @return returns cv_status::timeout if the wait terminates when Rel_time has elapsed. Otherwise,
    * the method returns cv_status::no_timeout
    */
   template <class Rep, class Period>
-  std::cv_status wait_for(std::unique_lock<BrtMutex>& cond_mutex,
+  std::cv_status wait_for(std::unique_lock<TbrtMutex>& cond_mutex,
                           const std::chrono::duration<Rep, Period>& rel_time);
   using native_handle_type = CONDITION_VARIABLE*;
 
@@ -91,18 +91,18 @@ class BrtCondVar {
 
  private:
   void timed_wait_impl(
-      std::unique_lock<BrtMutex>& __lk,
+      std::unique_lock<TbrtMutex>& __lk,
       std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>);
 };
 
 template <class _Predicate>
-void BrtCondVar::wait(std::unique_lock<BrtMutex>& __lk, _Predicate __pred) {
+void TbrtCondVar::wait(std::unique_lock<TbrtMutex>& __lk, _Predicate __pred) {
   while (!__pred())
     wait(__lk);
 }
 
 template <class Rep, class Period>
-std::cv_status BrtCondVar::wait_for(std::unique_lock<BrtMutex>& cond_mutex,
+std::cv_status TbrtCondVar::wait_for(std::unique_lock<TbrtMutex>& cond_mutex,
                                     const std::chrono::duration<Rep, Period>& rel_time) {
   // TODO: is it possible to use nsync_from_time_point_ ?
   using namespace std::chrono;
@@ -126,21 +126,21 @@ std::cv_status BrtCondVar::wait_for(std::unique_lock<BrtMutex>& cond_mutex,
 }  // namespace turbort
 #else
 
-#if USE_NSYNC
+#if defined(USE_NSYNC)
 
 #include <condition_variable>  //for cv_status
 #include <mutex>               //for unique_lock
 #include "nsync.h"
 namespace turbort {
 
-class BrtMutex {
+class TbrtMutex {
   nsync::nsync_mu data_ = NSYNC_MU_INIT;
 
  public:
-  BrtMutex() = default;
-  ~BrtMutex() = default;
-  BrtMutex(const BrtMutex&) = delete;
-  BrtMutex& operator=(const BrtMutex&) = delete;
+  TbrtMutex() = default;
+  ~TbrtMutex() = default;
+  TbrtMutex(const TbrtMutex&) = delete;
+  TbrtMutex& operator=(const TbrtMutex&) = delete;
 
   void lock() {
     nsync::nsync_mu_lock(&data_);
@@ -158,15 +158,15 @@ class BrtMutex {
   }
 };
 
-class BrtCondVar {
+class TbrtCondVar {
   nsync::nsync_cv native_cv_object = NSYNC_CV_INIT;
 
  public:
-  BrtCondVar() noexcept = default;
+  TbrtCondVar() noexcept = default;
 
-  ~BrtCondVar() = default;
-  BrtCondVar(const BrtCondVar&) = delete;
-  BrtCondVar& operator=(const BrtCondVar&) = delete;
+  ~TbrtCondVar() = default;
+  TbrtCondVar(const TbrtCondVar&) = delete;
+  TbrtCondVar& operator=(const TbrtCondVar&) = delete;
 
   void notify_one() noexcept {
     nsync::nsync_cv_signal(&native_cv_object);
@@ -175,21 +175,21 @@ class BrtCondVar {
     nsync::nsync_cv_broadcast(&native_cv_object);
   }
 
-  void wait(std::unique_lock<BrtMutex>& lk);
+  void wait(std::unique_lock<TbrtMutex>& lk);
   template <class _Predicate>
-  void wait(std::unique_lock<BrtMutex>& __lk, _Predicate __pred);
+  void wait(std::unique_lock<TbrtMutex>& __lk, _Predicate __pred);
 
   /**
    * returns cv_status::timeout if the wait terminates when Rel_time has elapsed. Otherwise, the
    * method returns cv_status::no_timeout.
-   * @param cond_mutex A unique_lock<BrtMutex> object.
+   * @param cond_mutex A unique_lock<TbrtMutex> object.
    * @param rel_time A chrono::duration object that specifies the amount of time before the thread
    * wakes up.
    * @return returns cv_status::timeout if the wait terminates when Rel_time has elapsed. Otherwise,
    * the method returns cv_status::no_timeout
    */
   template <class Rep, class Period>
-  std::cv_status wait_for(std::unique_lock<BrtMutex>& cond_mutex,
+  std::cv_status wait_for(std::unique_lock<TbrtMutex>& cond_mutex,
                           const std::chrono::duration<Rep, Period>& rel_time);
   using native_handle_type = nsync::nsync_cv*;
   native_handle_type native_handle() {
@@ -198,18 +198,18 @@ class BrtCondVar {
 
  private:
   void timed_wait_impl(
-      std::unique_lock<BrtMutex>& __lk,
+      std::unique_lock<TbrtMutex>& __lk,
       std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>);
 };
 
 template <class _Predicate>
-void BrtCondVar::wait(std::unique_lock<BrtMutex>& __lk, _Predicate __pred) {
+void TbrtCondVar::wait(std::unique_lock<TbrtMutex>& __lk, _Predicate __pred) {
   while (!__pred())
     wait(__lk);
 }
 
 template <class Rep, class Period>
-std::cv_status BrtCondVar::wait_for(std::unique_lock<BrtMutex>& cond_mutex,
+std::cv_status TbrtCondVar::wait_for(std::unique_lock<TbrtMutex>& cond_mutex,
                                     const std::chrono::duration<Rep, Period>& rel_time) {
   // TODO: is it possible to use nsync_from_time_point_ ?
   using namespace std::chrono;
@@ -237,14 +237,14 @@ std::cv_status BrtCondVar::wait_for(std::unique_lock<BrtMutex>& cond_mutex,
 #include <mutex>
 namespace turbort {
 
-class BrtMutex {
+class TbrtMutex {
   std::mutex mtx;
 
  public:
-  BrtMutex() = default;
-  ~BrtMutex() = default;
-  BrtMutex(const BrtMutex&) = delete;
-  BrtMutex& operator=(const BrtMutex&) = delete;
+  TbrtMutex() = default;
+  ~TbrtMutex() = default;
+  TbrtMutex(const TbrtMutex&) = delete;
+  TbrtMutex& operator=(const TbrtMutex&) = delete;
 
   void lock() {
     mtx.lock();
@@ -262,15 +262,15 @@ class BrtMutex {
   }
 };
 
-class BrtCondVar {
+class TbrtCondVar {
   std::condition_variable cv;
 
  public:
-  BrtCondVar() noexcept = default;
+  TbrtCondVar() noexcept = default;
 
-  ~BrtCondVar() = default;
-  BrtCondVar(const BrtCondVar&) = delete;
-  BrtCondVar& operator=(const BrtCondVar&) = delete;
+  ~TbrtCondVar() = default;
+  TbrtCondVar(const TbrtCondVar&) = delete;
+  TbrtCondVar& operator=(const TbrtCondVar&) = delete;
 
   void notify_one() noexcept {
     cv.notify_one();
@@ -279,21 +279,21 @@ class BrtCondVar {
     cv.notify_all();
   }
 
-  void wait(std::unique_lock<BrtMutex>& lk);
+  void wait(std::unique_lock<TbrtMutex>& lk);
   template <class _Predicate>
-  void wait(std::unique_lock<BrtMutex>& __lk, _Predicate __pred);
+  void wait(std::unique_lock<TbrtMutex>& __lk, _Predicate __pred);
 
   /**
    * returns cv_status::timeout if the wait terminates when Rel_time has elapsed. Otherwise, the
    * method returns cv_status::no_timeout.
-   * @param cond_mutex A unique_lock<BrtMutex> object.
+   * @param cond_mutex A unique_lock<TbrtMutex> object.
    * @param rel_time A chrono::duration object that specifies the amount of time before the thread
    * wakes up.
    * @return returns cv_status::timeout if the wait terminates when Rel_time has elapsed. Otherwise,
    * the method returns cv_status::no_timeout
    */
   template <class Rep, class Period>
-  std::cv_status wait_for(std::unique_lock<BrtMutex>& cond_mutex,
+  std::cv_status wait_for(std::unique_lock<TbrtMutex>& cond_mutex,
                           const std::chrono::duration<Rep, Period>& rel_time);
   using native_handle_type = std::condition_variable::native_handle_type;
   native_handle_type native_handle() {
@@ -302,18 +302,18 @@ class BrtCondVar {
 
  private:
   void timed_wait_impl(
-      std::unique_lock<BrtMutex>& __lk,
+      std::unique_lock<TbrtMutex>& __lk,
       std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>);
 };
 
 template <class _Predicate>
-void BrtCondVar::wait(std::unique_lock<BrtMutex>& __lk, _Predicate __pred) {
+void TbrtCondVar::wait(std::unique_lock<TbrtMutex>& __lk, _Predicate __pred) {
   while (!__pred())
     wait(__lk);
 }
 
 template <class Rep, class Period>
-std::cv_status BrtCondVar::wait_for(std::unique_lock<BrtMutex>& cond_mutex,
+std::cv_status TbrtCondVar::wait_for(std::unique_lock<TbrtMutex>& cond_mutex,
                                     const std::chrono::duration<Rep, Period>& rel_time) {
   return cv.wait_for(cond_mutex, rel_time);
 }

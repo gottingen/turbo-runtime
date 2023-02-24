@@ -12,8 +12,8 @@ namespace turbort {
 class CUDAAllocator : public IAllocator {
  public:
   CUDAAllocator(int device_id, const char* name)
-      : IAllocator(BrtMemoryInfo(
-            name, BrtAllocatorType::BrtDeviceAllocator, device_id, BrtMemTypeDefault)) {
+      : IAllocator(TbrtMemoryInfo(
+            name, TbrtAllocatorType::TbrtDeviceAllocator, device_id, TbrtMemTypeDefault)) {
   }
   void* Alloc(size_t size) override;
   void Free(void* p) override;
@@ -46,8 +46,8 @@ class CUDAExternalAllocator : public CUDAAllocator {
 class CUDAPinnedAllocator : public IAllocator {
  public:
   CUDAPinnedAllocator(int device_id, const char* name)
-      : IAllocator(BrtMemoryInfo(
-            name, BrtAllocatorType::BrtDeviceAllocator, device_id, BrtMemTypeCPUOutput)) {
+      : IAllocator(TbrtMemoryInfo(
+            name, TbrtAllocatorType::TbrtDeviceAllocator, device_id, TbrtMemTypeCPUOutput)) {
   }
 
   void* Alloc(size_t size) override;

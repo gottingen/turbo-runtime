@@ -13,8 +13,8 @@ BFCArena::BFCArena(std::unique_ptr<IAllocator> resource_allocator,
                    ArenaExtendStrategy arena_extend_strategy,
                    int initial_chunk_size_bytes, int max_dead_bytes_per_chunk,
                    int initial_growth_chunk_size_bytes)
-    : IArenaAllocator(BrtMemoryInfo(
-          resource_allocator->Info().name, BrtAllocatorType::BrtArenaAllocator,
+    : IArenaAllocator(TbrtMemoryInfo(
+          resource_allocator->Info().name, TbrtAllocatorType::TbrtArenaAllocator,
           resource_allocator->Info().id, resource_allocator->Info().mem_type)),
       device_allocator_(std::move(resource_allocator)),
       free_chunks_list_(kInvalidChunkHandle), next_allocation_id_(1),
@@ -69,7 +69,7 @@ BFCArena::BFCArena(std::unique_ptr<IAllocator> resource_allocator,
   }
 
   if (initial_max_extend) {
-    Extend(memory_limit_);
+    TURBO_UNUSED(Extend(memory_limit_));
   }
 }
 
@@ -113,7 +113,7 @@ turbo::Status BFCArena::Extend(size_t rounded_bytes) {
       // attempted allocation can throw std::bad_alloc. we want to treat this
       // the same as if it returned nullptr so swallow the exception
     }
-    BRT_CATCH(const BrtException &brt_exception) {
+    BRT_CATCH(const TbrtException &brt_exception) {
       // swallow if exception is our throw from a failed cudaMalloc call.
       // re-throw otherwise.
       BRT_HANDLE_EXCEPTION([&brt_exception]() {
@@ -254,7 +254,7 @@ void *BFCArena::Reserve(size_t size) {
   if (size == 0)
     return nullptr;
 
-  std::lock_guard<BrtMutex> lock(lock_);
+  std::lock_guard<TbrtMutex> lock(lock_);
 
   void *ptr = device_allocator_->Alloc(size);
   BRT_ENFORCE(reserved_chunks_.find(ptr) == reserved_chunks_.end());
@@ -263,7 +263,7 @@ void *BFCArena::Reserve(size_t size) {
   stats_.num_reserves += 1;
   stats_.num_allocs += 1;
   stats_.max_alloc_size =
-      std::max<size_t>(static_cast<size_t>(stats_.max_alloc_size), size);
+      static_cast<int64_t>(std::max<size_t>(static_cast<size_t>(stats_.max_alloc_size), size));
   stats_.max_bytes_in_use = std::max<int64_t>(
       static_cast<int64_t>(stats_.max_bytes_in_use), stats_.bytes_in_use);
   stats_.total_allocated_bytes += size;
@@ -271,7 +271,7 @@ void *BFCArena::Reserve(size_t size) {
 }
 
 size_t BFCArena::RequestedSize(const void *ptr) {
-  std::lock_guard<BrtMutex> lock(lock_);
+  std::lock_guard<TbrtMutex> lock(lock_);
   BFCArena::ChunkHandle h = region_manager_.get_handle(ptr);
   BRT_ENFORCE(h != kInvalidChunkHandle);
   BFCArena::Chunk *c = ChunkFromHandle(h);
@@ -279,7 +279,7 @@ size_t BFCArena::RequestedSize(const void *ptr) {
 }
 
 size_t BFCArena::AllocatedSize(const void *ptr) {
-  std::lock_guard<BrtMutex> lock(lock_);
+  std::lock_guard<TbrtMutex> lock(lock_);
   BFCArena::ChunkHandle h = region_manager_.get_handle(ptr);
   BRT_ENFORCE(h != kInvalidChunkHandle);
   BFCArena::Chunk *c = ChunkFromHandle(h);
@@ -299,7 +299,7 @@ void *BFCArena::AllocateRawInternal(size_t num_bytes,
   // The BFC allocator tries to find the best fit first.
   BinNum bin_num = BinNumForSize(rounded_bytes);
 
-  std::lock_guard<BrtMutex> lock(lock_);
+  std::lock_guard<TbrtMutex> lock(lock_);
   void *ptr = FindChunkPtr(bin_num, rounded_bytes, num_bytes);
   if (ptr != nullptr) {
     device_allocator_->SetDevice(false);
@@ -418,7 +418,7 @@ void BFCArena::Free(void *p) {
   if (p == nullptr) {
     return;
   }
-  std::lock_guard<BrtMutex> lock(lock_);
+  std::lock_guard<TbrtMutex> lock(lock_);
   auto it = reserved_chunks_.find(p);
   if (it != reserved_chunks_.end()) {
     device_allocator_->Free(it->first);
@@ -431,7 +431,7 @@ void BFCArena::Free(void *p) {
 }
 
 turbo::Status BFCArena::Shrink() {
-  std::lock_guard<BrtMutex> lock(lock_);
+  std::lock_guard<TbrtMutex> lock(lock_);
   auto num_regions = region_manager_.regions().size();
   std::vector<void *> region_ptrs;
   std::vector<size_t> region_sizes;
@@ -486,7 +486,7 @@ turbo::Status BFCArena::Shrink() {
   // Will affect how the arena grows if the arena extend strategy is
   // kNextPowerOfTwo In case the extend strategy is kSameAsRequested, the arena
   // growth is exactly the size of the memory request itself
-  curr_region_allocation_bytes_ = initial_growth_chunk_size_bytes_;
+  curr_region_allocation_bytes_ = static_cast<size_t>(initial_growth_chunk_size_bytes_);
 
   return turbo::OkStatus();
 }
@@ -614,7 +614,7 @@ BFCArena::get_bin_debug_info() {
     while (h != kInvalidChunkHandle) {
       const Chunk *c = ChunkFromHandle(h);
       BinNum bin_num = BinNumForSize(c->size);
-      BinDebugInfo &bin_info = bin_infos[bin_num];
+      BinDebugInfo &bin_info = bin_infos[static_cast<size_t>(bin_num)];
       bin_info.total_bytes_in_bin += c->size;
       bin_info.total_chunks_in_bin++;
       if (c->in_use()) {
@@ -635,10 +635,12 @@ BFCArena::get_bin_debug_info() {
 void BFCArena::DumpMemoryLog(size_t num_bytes) {
   const std::array<BinDebugInfo, kNumBins> bin_infos = get_bin_debug_info();
 
+  TURBO_DISABLE_CLANG_WARNING(-Wunused-but-set-variable)
   size_t waste = 0;
+  TURBO_RESTORE_CLANG_WARNING()
   for (BinNum bin_num = 0; bin_num < kNumBins; bin_num++) {
     Bin *b = BinFromIndex(bin_num);
-    const BinDebugInfo &bin_info = bin_infos[bin_num];
+    const BinDebugInfo &bin_info = bin_infos[static_cast<size_t>(bin_num)];
     BRT_ENFORCE(b->free_chunks.size() ==
                 bin_info.total_chunks_in_bin - bin_info.total_chunks_in_use);
 
@@ -654,6 +656,7 @@ void BFCArena::DumpMemoryLog(size_t num_bytes) {
 
   for (ChunkHandle h : b->free_chunks) {
     Chunk *c = ChunkFromHandle(h);
+    TURBO_UNUSED(c);
   }
 
   // Next show the chunks that are in use, and also summarize their
@@ -669,10 +672,11 @@ void BFCArena::DumpMemoryLog(size_t num_bytes) {
       h = c->next;
     }
   }
-
+  TURBO_DISABLE_CLANG_WARNING(-Wunused-but-set-variable)
   size_t total_bytes = 0;
+  TURBO_RESTORE_CLANG_WARNING()
   for (auto &it : in_use_by_size) {
-    total_bytes += (it.first * it.second);
+    total_bytes += (it.first * static_cast<size_t>(it.second));
   }
 }
 } // namespace turbort

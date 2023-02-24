@@ -93,7 +93,7 @@ void LogRuntimeError(uint32_t session_id,
 
 // __PRETTY_FUNCTION__ isn't a macro on gcc, so use a check for _MSC_VER
 // so we only define it as one for MSVC
-#if (_MSC_VER && !defined(__PRETTY_FUNCTION__))
+#if (defined(_MSC_VER) && !defined(__PRETTY_FUNCTION__))
 #define __PRETTY_FUNCTION__ __FUNCTION__
 #endif
 
@@ -122,7 +122,7 @@ void LogRuntimeError(uint32_t session_id,
 #define BRT_THROW(...)                                                                     \
   do {                                                                                     \
     ::turbort::PrintFinalMessage(                                                              \
-        ::turbort::BrtException(BRT_WHERE_WITH_STACK, ::turbort::MakeString(__VA_ARGS__)).what()); \
+        ::turbort::TbrtException(BRT_WHERE_WITH_STACK, ::turbort::MakeString(__VA_ARGS__)).what()); \
     abort();                                                                               \
   } while (false)
 
@@ -141,7 +141,7 @@ void LogRuntimeError(uint32_t session_id,
   do {                                                                                          \
     if (!(condition)) {                                                                         \
       ::turbort::PrintFinalMessage(                                                                 \
-          ::turbort::BrtException(BRT_WHERE_WITH_STACK, #condition, ::turbort::MakeString(__VA_ARGS__)) \
+          ::turbort::TbrtException(BRT_WHERE_WITH_STACK, #condition, ::turbort::MakeString(__VA_ARGS__)) \
               .what());                                                                         \
       abort();                                                                                  \
     }                                                                                           \
@@ -166,7 +166,7 @@ void LogRuntimeError(uint32_t session_id,
 // NOTE: The arguments get streamed into a string via ostringstream::operator<<
 // DO NOT use a printf format string, as that will not work as you expect.
 #define BRT_THROW(...) \
-  throw ::turbort::BrtException(BRT_WHERE_WITH_STACK, ::turbort::MakeString(__VA_ARGS__))
+  throw ::turbort::TbrtException(BRT_WHERE_WITH_STACK, ::turbort::MakeString(__VA_ARGS__))
 
 // Just in order to mark things as not implemented. Do not use in final code.
 #define BRT_NOT_IMPLEMENTED(...) \
@@ -177,7 +177,7 @@ void LogRuntimeError(uint32_t session_id,
 // DO NOT use a printf format string, as that will not work as you expect.
 #define BRT_ENFORCE(condition, ...) \
   if (!(condition))                 \
-  throw ::turbort::BrtException(BRT_WHERE_WITH_STACK, #condition, ::turbort::MakeString(__VA_ARGS__))
+  throw ::turbort::TbrtException(BRT_WHERE_WITH_STACK, #condition, ::turbort::MakeString(__VA_ARGS__))
 
 #define BRT_THROW_EX(ex, ...) throw ex(__VA_ARGS__)
 

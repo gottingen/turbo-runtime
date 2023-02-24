@@ -31,10 +31,10 @@ class TypeMismatchException : public std::logic_error {
   TypeMismatchException() noexcept : logic_error("Type mismatch"){};
 };
 
-class BrtException : public std::exception {
+class TbrtException : public std::exception {
  public:
-  BrtException(const CodeLocation& location, const std::string& msg) noexcept
-      : BrtException(location, nullptr, msg) {
+  TbrtException(const CodeLocation& location, const std::string& msg) noexcept
+      : TbrtException(location, nullptr, msg) {
   }
 
   /**
@@ -44,7 +44,7 @@ class BrtException : public std::exception {
      e.g. "tensor.Size() == input.Size()". May be nullptr.
      @param msg Message containing additional information about the exception cause.
   */
-  BrtException(const CodeLocation& location, const char* failed_condition, const std::string& msg)
+  TbrtException(const CodeLocation& location, const char* failed_condition, const std::string& msg)
       : location_{location} {
     std::ostringstream ss;
 

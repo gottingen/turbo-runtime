@@ -10,24 +10,24 @@
 
 // This configures the arena based allocator used by ORT
 // See docs/C_API.md for details on what these mean and how to choose these values
-struct BrtArenaCfg {
-  BrtArenaCfg()
+struct TbrtArenaCfg {
+  TbrtArenaCfg()
       : max_mem(0),
         arena_extend_strategy(-1),
         initial_chunk_size_bytes(-1),
         max_dead_bytes_per_chunk(-1),
         initial_growth_chunk_size_bytes(-1) {
   }
-  BrtArenaCfg(size_t max_mem,
-              int arena_extend_strategy,
-              int initial_chunk_size_bytes,
-              int max_dead_bytes_per_chunk,
-              int initial_growth_chunk_size_bytes)
-      : max_mem(max_mem),
-        arena_extend_strategy(arena_extend_strategy),
-        initial_chunk_size_bytes(initial_chunk_size_bytes),
-        max_dead_bytes_per_chunk(max_dead_bytes_per_chunk),
-        initial_growth_chunk_size_bytes(initial_growth_chunk_size_bytes) {
+  TbrtArenaCfg(size_t max_mem_arg,
+              int arena_extend_strategy_arg,
+              int initial_chunk_size_bytes_arg,
+              int max_dead_bytes_per_chunk_arg,
+              int initial_growth_chunk_size_bytes_arg)
+      : max_mem(max_mem_arg),
+        arena_extend_strategy(arena_extend_strategy_arg),
+        initial_chunk_size_bytes(initial_chunk_size_bytes_arg),
+        max_dead_bytes_per_chunk(max_dead_bytes_per_chunk_arg),
+        initial_growth_chunk_size_bytes(initial_growth_chunk_size_bytes_arg) {
   }
 
   size_t max_mem;             // use 0 to allow ORT to choose the default
@@ -55,7 +55,7 @@ using IAllocatorUniquePtr = std::unique_ptr<T, std::function<void(T*)>>;
 
 class IAllocator {
  public:
-  IAllocator(const BrtMemoryInfo& info) : memory_info_(info) {
+  IAllocator(const TbrtMemoryInfo& info) : memory_info_(info) {
   }
   virtual ~IAllocator() = default;
   /**
@@ -64,7 +64,7 @@ class IAllocator {
   */
   virtual void* Alloc(size_t size) = 0;
   virtual void Free(void* p) = 0;
-  const BrtMemoryInfo& Info() const {
+  const TbrtMemoryInfo& Info() const {
     return memory_info_;
   };
 
@@ -159,7 +159,7 @@ class IAllocator {
   }
 
  private:
-  BrtMemoryInfo memory_info_;
+  TbrtMemoryInfo memory_info_;
 };
 
 template <size_t alignment>
@@ -169,10 +169,10 @@ bool IAllocator::CalcMemSizeForArrayWithAlignment(size_t nmemb, size_t size, siz
 
 class CPUAllocator : public IAllocator {
  public:
-  explicit CPUAllocator(const BrtMemoryInfo& memory_info) : IAllocator(memory_info) {
+  explicit CPUAllocator(const TbrtMemoryInfo& memory_info) : IAllocator(memory_info) {
   }
 
-  CPUAllocator() : IAllocator(BrtMemoryInfo(CPU, BrtAllocatorType::BrtDeviceAllocator)) {
+  CPUAllocator() : IAllocator(TbrtMemoryInfo(CPU, TbrtAllocatorType::TbrtDeviceAllocator)) {
   }
 
   void* Alloc(size_t size) override;

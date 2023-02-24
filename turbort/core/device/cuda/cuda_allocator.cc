@@ -15,7 +15,7 @@
     if (!(e == cudaSuccess || e == cudaErrorCudartUnloading)) { \
       std::stringstream fmsg;                                   \
       fmsg << "CUDA: " << cudaGetErrorString(e);                \
-      throw ::turbort::BrtException(BRT_WHERE, fmsg.str());         \
+      throw ::turbort::TbrtException(BRT_WHERE, fmsg.str());         \
     }                                                           \
   }
 

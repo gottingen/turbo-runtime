@@ -14,34 +14,34 @@
  * Whenever this struct is updated, please also update the MakeKey function in
  * onnxruntime/core/framework/execution_provider.cc
  */
-typedef enum BrtMemType {
-  BrtMemTypeCPUInput = -2,  // Any CPU memory used by non-CPU execution provider
-  BrtMemTypeCPUOutput =
+typedef enum TbrtMemType {
+  TbrtMemTypeCPUInput = -2,  // Any CPU memory used by non-CPU execution provider
+  TbrtMemTypeCPUOutput =
       -1,  // CPU accessible memory outputted by non-CPU execution provider, i.e. CUDA_PINNED
-  BrtMemTypeCPU = BrtMemTypeCPUOutput,  // temporary CPU accessible memory allocated by non-CPU
+  TbrtMemTypeCPU = TbrtMemTypeCPUOutput,  // temporary CPU accessible memory allocated by non-CPU
                                         // execution provider, i.e. CUDA_PINNED
-  BrtMemTypeDefault = 0,                // the default allocator for execution provider
-} BrtMemType;
+  TbrtMemTypeDefault = 0,                // the default allocator for execution provider
+} TbrtMemType;
 
-typedef enum BrtAllocatorType {
+typedef enum TbrtAllocatorType {
   Invalid = -1,
-  BrtDeviceAllocator = 0,
-  BrtArenaAllocator = 1
-} BrtAllocatorType;
+  TbrtDeviceAllocator = 0,
+  TbrtArenaAllocator = 1
+} TbrtAllocatorType;
 
-struct BrtMemoryInfo {
-  BrtMemoryInfo() = default;  // to allow default construction of Tensor
+struct TbrtMemoryInfo {
+  TbrtMemoryInfo() = default;  // to allow default construction of Tensor
 
   // use string for name, so we could have customized allocator in execution provider.
   const char* name = nullptr;
   int id = -1;
-  BrtMemType mem_type = BrtMemTypeDefault;
-  BrtAllocatorType alloc_type = Invalid;
+  TbrtMemType mem_type = TbrtMemTypeDefault;
+  TbrtAllocatorType alloc_type = Invalid;
 
-  constexpr BrtMemoryInfo(const char* name_,
-                          BrtAllocatorType type_,
+  constexpr TbrtMemoryInfo(const char* name_,
+                          TbrtAllocatorType type_,
                           int id_ = 0,
-                          BrtMemType mem_type_ = BrtMemTypeDefault)
+                          TbrtMemType mem_type_ = TbrtMemTypeDefault)
 #if ((defined(__GNUC__) && __GNUC__ > 4) || defined(__clang__))
       // this causes a spurious error in CentOS gcc 4.8 build so disable if GCC version < 5
       __attribute__((nonnull))
@@ -50,7 +50,7 @@ struct BrtMemoryInfo {
   }
 
   // To make OrtMemoryInfo become a valid key in std map
-  bool operator<(const BrtMemoryInfo& other) const {
+  bool operator<(const TbrtMemoryInfo& other) const {
     if (alloc_type != other.alloc_type)
       return alloc_type < other.alloc_type;
     if (mem_type != other.mem_type)
@@ -63,20 +63,20 @@ struct BrtMemoryInfo {
 
   std::string ToString() const {
     std::ostringstream ostr;
-    ostr << "BrtMemoryInfo:["
-         << "name:" << name << " id:" << id << " BrtMemType:" << mem_type
-         << " BrtAllocatorType:" << alloc_type << "]";
+    ostr << "TbrtMemoryInfo:["
+         << "name:" << name << " id:" << id << " TbrtMemType:" << mem_type
+         << " TbrtAllocatorType:" << alloc_type << "]";
     return ostr.str();
   }
 };
 
-inline bool operator==(const BrtMemoryInfo& left, const BrtMemoryInfo& other) {
+inline bool operator==(const TbrtMemoryInfo& left, const TbrtMemoryInfo& other) {
   return left.mem_type == other.mem_type && left.alloc_type == other.alloc_type &&
          left.id == other.id && strcmp(left.name, other.name) == 0;
 }
 
-inline bool operator!=(const BrtMemoryInfo& lhs, const BrtMemoryInfo& rhs) {
+inline bool operator!=(const TbrtMemoryInfo& lhs, const TbrtMemoryInfo& rhs) {
   return !(lhs == rhs);
 }
 
-std::ostream& operator<<(std::ostream& out, const BrtMemoryInfo& info);
+std::ostream& operator<<(std::ostream& out, const TbrtMemoryInfo& info);
